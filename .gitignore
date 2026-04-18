@@ -1,5 +1,6 @@
 .planning/
 .env
+.env.local
 .aws-sam/
 samconfig.toml.bak
 node_modules/
