@@ -20,14 +20,14 @@ The stack is 100% serverless — no EC2, no containers, no VPC. The entire infra
 
 All accounts use password: **`Classhi1!`**
 
-| Email | Role |
-|-------|------|
-| `dpm79@pitt.edu` | Admin (Dan Mahoney — can create + resolve markets) |
-| `shr172@pitt.edu` | Student |
-| `krk131@pitt.edu` | Student |
-| `aqm12@pitt.edu` | Student |
-| `hnh21@pitt.edu` | Student |
-| `akk97@pitt.edu` | Student |
+| Email             | Role                                               |
+| ----------------- | -------------------------------------------------- |
+| `dpm79@pitt.edu`  | Admin (Dan Mahoney — can create + resolve markets) |
+| `shr172@pitt.edu` | Student                                            |
+| `krk131@pitt.edu` | Student                                            |
+| `aqm12@pitt.edu`  | Student                                            |
+| `hnh21@pitt.edu`  | Student                                            |
+| `akk97@pitt.edu`  | Student                                            |
 
 ---
 
@@ -35,12 +35,11 @@ All accounts use password: **`Classhi1!`**
 
 CS 1660 lectures are good but it's easy to zone out (only because lecture is 6-8, dw Dan, you're the 🐐). The idea behind Classhi is that if you have $10 of play money riding on whether Dan says "serverless" more than 5 times, you're suddenly paying close attention for the rest of the hour.
 
-Once you've placed a bet, you're not passively listening — you're actively tracking. And when you open the market page and see the YES price jump from 50¢ to 70¢ in the first 10 minutes, that's everyone else in the room updating their view at the same time. 
+Once you've placed a bet, you're not passively listening — you're actively tracking. And when you open the market page and see the YES price jump from 50¢ to 70¢ in the first 10 minutes, that's everyone else in the room updating their view at the same time.
 
 The leaderboard is a small thing but it works. Seeing that you're $260 behind your friend is enough to make you care a bit more next class. Markets settle after Dan resolves them, so there's always something to check after lecture.
 
 There's also a feedback loop for Dan: if "Will a student ask what S3 stands for?" is sitting at 80¢, the class is basically saying that without anyone having to raise their hand.
-
 
 ---
 
@@ -157,17 +156,17 @@ Browser (React SPA) |  https://<cf>.cloudfront.net|
 
 ## Services & Justification
 
-| # | Service | Purpose | Why it's the right fit |
-|---|---------|---------|------------------------|
-| 1 | **Amazon Cognito** (User Pool + PostConfirmation) | Email/password sign-up, login, JWT issuance, $1000 balance provisioning | Managed auth — no credential handling, no password hashing code. PostConfirmation trigger hooks the first-login balance seed cleanly. |
-| 2 | **API Gateway HTTP API** | REST routes (`/markets`, `/me`, `/leaderboard`, `/markets/{id}/bets`, `/markets/{id}/resolve`) | Native JWT authorizer validates Cognito tokens without a custom Lambda — lower latency + cost than REST API. |
-| 3 | **API Gateway WebSocket API** | Real-time price updates pushed to subscribed clients | Managed WebSocket with stable connection IDs; Lambda authorizer handles JWT via query-string (browsers can't set WS headers). |
-| 4 | **AWS Lambda** (15 functions, ARM64 Node.js 20) | All business logic: market CRUD, bet placement, payout fan-out, WebSocket handlers, scheduler callback, leaderboard | Per-route isolation; pay-per-invoke; ARM64 saves ~20% vs. x86. Zero ops burden. |
-| 5 | **Amazon DynamoDB** (4 tables) | Primary data store: users, markets, positions, websocket connections | Single-digit-ms reads, serverless, on-demand billing, atomic `TransactWriteItems` for lost-update-free bet placement (BET-04). |
-| 6 | **DynamoDB Streams** (MarketsTable) | Event source for WebSocket price broadcast | Decouples price updates from the bet-placement write path — the broadcaster reads the stream and fans out updates without blocking user requests. `TRIM_HORIZON` + `ReportBatchItemFailures` prevent dropped events. |
-| 7 | **Amazon EventBridge Scheduler** | Per-market one-time schedules for `scheduled → open` and `open → closed` transitions | `ScheduleV2` supports timezones + automatic deletion (`ActionAfterCompletion: DELETE`) — unlike classic EventBridge Rules which are UTC-only. Replaces cron polling entirely. |
-| 8 | **Amazon S3** (private, OAC) | Host Vite-built frontend static assets | Cheap, durable, scales to grading traffic. Public access fully blocked; only CloudFront OAC can read objects. |
-| 9 | **Amazon CloudFront** (+ OAC) | HTTPS edge delivery of the SPA; SPA routing fallback | HTTPS required (INFRA-04); OAC is the current replacement for deprecated OAI; CustomErrorResponses map both 403 and 404 → `/index.html` so React Router sub-routes (`/leaderboard`, `/markets/:id`) work on direct navigation. |
+| #   | Service                                           | Purpose                                                                                                             | Why it's the right fit                                                                                                                                                                                                         | Presenter |
+| --- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| 1   | **Amazon Cognito** (User Pool + PostConfirmation) | Email/password sign-up, login, JWT issuance, $1000 balance provisioning                                             | Managed auth — no credential handling, no password hashing code. PostConfirmation trigger hooks the first-login balance seed cleanly.                                                                                          | Shreyash  |
+| 2   | **API Gateway HTTP API**                          | REST routes (`/markets`, `/me`, `/leaderboard`, `/markets/{id}/bets`, `/markets/{id}/resolve`)                      | Native JWT authorizer validates Cognito tokens without a custom Lambda — lower latency + cost than REST API.                                                                                                                   | Shreyash  |
+| 3   | **API Gateway WebSocket API**                     | Real-time price updates pushed to subscribed clients                                                                | Managed WebSocket with stable connection IDs; Lambda authorizer handles JWT via query-string (browsers can't set WS headers).                                                                                                  | Akash     |
+| 4   | **AWS Lambda** (15 functions, ARM64 Node.js 20)   | All business logic: market CRUD, bet placement, payout fan-out, WebSocket handlers, scheduler callback, leaderboard | Per-route isolation; pay-per-invoke; ARM64 saves ~20% vs. x86. Zero ops burden.                                                                                                                                                | Akash     |
+| 5   | **Amazon DynamoDB** (4 tables)                    | Primary data store: users, markets, positions, websocket connections                                                | Single-digit-ms reads, serverless, on-demand billing, atomic `TransactWriteItems` for lost-update-free bet placement (BET-04).                                                                                                 | Aidan     |
+| 6   | **DynamoDB Streams** (MarketsTable)               | Event source for WebSocket price broadcast                                                                          | Decouples price updates from the bet-placement write path — the broadcaster reads the stream and fans out updates without blocking user requests. `TRIM_HORIZON` + `ReportBatchItemFailures` prevent dropped events.           | Aidan     |
+| 7   | **Amazon EventBridge Scheduler**                  | Per-market one-time schedules for `scheduled → open` and `open → closed` transitions                                | `ScheduleV2` supports timezones + automatic deletion (`ActionAfterCompletion: DELETE`) — unlike classic EventBridge Rules which are UTC-only. Replaces cron polling entirely.                                                  | Krishna   |
+| 8   | **Amazon S3** (private, OAC)                      | Host Vite-built frontend static assets                                                                              | Cheap, durable, scales to grading traffic. Public access fully blocked; only CloudFront OAC can read objects.                                                                                                                  | Krishna   |
+| 9   | **Amazon CloudFront** (+ OAC)                     | HTTPS edge delivery of the SPA; SPA routing fallback                                                                | HTTPS required (INFRA-04); OAC is the current replacement for deprecated OAI; CustomErrorResponses map both 403 and 404 → `/index.html` so React Router sub-routes (`/leaderboard`, `/markets/:id`) work on direct navigation. | Haiden    |
 
 **Deliberate exclusions** (not part of the 9): SNS, SQS, VPC, CloudWatch alarms, X-Ray. Real-time fan-out is handled by DynamoDB Streams + WebSocket — SNS/SQS would be redundant. No networking is needed for fully-managed services; no VPC required.
 
@@ -248,7 +247,6 @@ Push to `main` triggers `.github/workflows/deploy.yml`:
 
 1. `deploy-backend` runs `sam deploy` (OIDC; no long-lived keys).
 2. `deploy-frontend` runs `pnpm run build` in `frontend/`, syncs `dist/` to S3, and invalidates CloudFront (`/*`).
-
 
 - IAM OIDC provider for `token.actions.githubusercontent.com`
 - IAM role `classhi-github-deploy` with trust scoped to this repo
