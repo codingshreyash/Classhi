@@ -15,12 +15,28 @@ interface Position {
   createdAt: string;
 }
 
+interface SettledPosition {
+  marketId: string;
+  marketTitle: string | null;
+  side: 'YES' | 'NO';
+  shares: number;
+  costBasis: number;
+  payout: number;
+  realizedPnl: number;
+  outcome: 'YES' | 'NO' | null;
+  settledAt: string | null;
+}
+
 export function PortfolioPage() {
   const navigate = useNavigate();
   const { email, balance, idToken, signOut } = useAuth();
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  const [settled, setSettled] = useState<SettledPosition[]>([]);
+  const [settledLoading, setSettledLoading] = useState(true);
+  const [settledError, setSettledError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +53,26 @@ export function PortfolioPage() {
       }
     }
     fetchPositions();
+    return () => {
+      cancelled = true;
+    };
+  }, [idToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchSettled() {
+      try {
+        const res = await apiFetch('/me/positions?type=settled', idToken);
+        if (!res.ok) throw new Error('non-ok response');
+        const data = (await res.json()) as { positions: SettledPosition[] };
+        if (!cancelled) setSettled(data.positions ?? []);
+      } catch {
+        if (!cancelled) setSettledError(true);
+      } finally {
+        if (!cancelled) setSettledLoading(false);
+      }
+    }
+    fetchSettled();
     return () => {
       cancelled = true;
     };
@@ -158,6 +194,68 @@ export function PortfolioPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        <h2 className="mt-8 text-xl font-semibold text-[#111111]">Settled Positions</h2>
+
+        {settledLoading && (
+          <p className="mt-4 text-center text-sm text-gray-500">Loading settled positions...</p>
+        )}
+
+        {!settledLoading && settledError && (
+          <p className="mt-4 text-center text-sm text-classhi-coral">
+            Failed to load settled positions. Please try again.
+          </p>
+        )}
+
+        {!settledLoading && !settledError && settled.length === 0 && (
+          <div className="mt-4 py-8 text-center">
+            <p className="text-sm text-gray-500">No settled positions yet.</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Positions appear here after a market is resolved.
+            </p>
+          </div>
+        )}
+
+        {!settledLoading && !settledError && settled.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3">
+            {settled.map((p) => {
+              const won = p.outcome != null && p.side === p.outcome;
+              return (
+                <div
+                  key={p.marketId}
+                  className="rounded-lg border border-gray-200 bg-white p-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="flex-1 text-sm font-semibold text-[#111111]">
+                      {p.marketTitle ?? p.marketId}
+                    </span>
+                    <span
+                      className={`ml-2 rounded px-2 py-0.5 text-xs font-semibold text-white ${
+                        p.side === 'YES' ? 'bg-classhi-green' : 'bg-classhi-coral'
+                      }`}
+                    >
+                      {p.side}
+                    </span>
+                    <span
+                      className={`ml-2 rounded px-2 py-0.5 text-xs font-semibold ${
+                        won ? 'bg-classhi-green text-white' : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {won ? 'WON' : 'LOST'}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                    <span>Shares: {p.shares.toFixed(2)}</span>
+                    <span>Payout: ${p.payout.toFixed(2)}</span>
+                    <span className={p.realizedPnl > 0 ? 'text-classhi-green' : 'text-gray-500'}>
+                      Realized P&L: {p.realizedPnl > 0 ? `+$${p.realizedPnl.toFixed(2)}` : '$0.00'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
