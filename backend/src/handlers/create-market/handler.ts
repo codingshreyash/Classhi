@@ -1,9 +1,19 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  SchedulerClient,
+  CreateScheduleCommand,
+  ActionAfterCompletion,
+  ConflictException,
+} from "@aws-sdk/client-scheduler";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const MARKETS_TABLE = process.env.MARKETS_TABLE!;
+
+const scheduler = new SchedulerClient({});
+const SCHEDULER_ROLE_ARN = process.env.SCHEDULER_ROLE_ARN!;
+const SCHEDULER_HANDLER_ARN = process.env.SCHEDULER_HANDLER_ARN!;
 
 const HEADERS = {
   "Content-Type": "application/json",
@@ -21,6 +31,44 @@ function getInitialStatus(openAt: string, closeAt: string): string {
   if (now < new Date(openAt)) return "scheduled";
   if (now <= new Date(closeAt)) return "open";
   return "closed";
+}
+
+async function createMarketSchedule(
+  marketId: string,
+  atTime: string,
+  action: "open" | "close",
+): Promise<void> {
+  // Guard: skip if time is already past (EventBridge Scheduler would fire
+  // immediately, hitting ConditionalCheckFailedException for "open" if the
+  // market was created with an already-past openAt).
+  if (new Date(atTime) <= new Date()) return;
+
+  // at() expression requires `at(yyyy-mm-ddThh:mm:ss)` — strip the .SSSZ
+  // suffix that toISOString() produces. Failing to strip yields ValidationException.
+  const expr = `at(${new Date(atTime).toISOString().replace(/\.\d{3}Z$/, "")})`;
+
+  try {
+    await scheduler.send(
+      new CreateScheduleCommand({
+        Name: `market-${action}-${marketId}`,
+        ScheduleExpression: expr,
+        ScheduleExpressionTimezone: "UTC",
+        FlexibleTimeWindow: { Mode: "OFF" },
+        ActionAfterCompletion: ActionAfterCompletion.DELETE,
+        Target: {
+          Arn: SCHEDULER_HANDLER_ARN,
+          RoleArn: SCHEDULER_ROLE_ARN,
+          Input: JSON.stringify({ marketId, action }),
+        },
+      }),
+    );
+  } catch (err) {
+    if (err instanceof ConflictException) {
+      // Schedule already exists from a prior Lambda retry — treat as success.
+      return;
+    }
+    throw err;
+  }
 }
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
@@ -96,6 +144,18 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   };
 
   await ddb.send(new PutCommand({ TableName: MARKETS_TABLE, Item: market }));
+
+  // Phase 6: schedule automatic status transitions. Open is skipped if openAt
+  // is already past (market already in "open" status from getInitialStatus).
+  // Close is always scheduled if in the future. Failures here do NOT roll back
+  // the market — the admin can re-trigger or transition manually.
+  try {
+    await createMarketSchedule(market.marketId, openAt, "open");
+    await createMarketSchedule(market.marketId, closeAt, "close");
+  } catch (err) {
+    console.error("[create-market] schedule creation failed", err);
+    // Intentionally non-fatal: market is already persisted. Surface to logs only.
+  }
 
   return {
     statusCode: 201,
