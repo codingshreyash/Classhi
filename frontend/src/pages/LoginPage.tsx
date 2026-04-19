@@ -38,6 +38,7 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-classhi-bg dark:bg-dark-bg">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 dark:border-dark-border dark:bg-dark-card">
+        <img src="/logo.png" alt="Classhi" className="h-10 mb-4" />
         <h1 className="text-2xl font-condensed font-bold tracking-tight leading-tight text-[#111111] dark:text-white">
           Welcome back
         </h1>
