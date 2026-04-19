@@ -6,7 +6,7 @@ resolve_s3 = true
 region = "us-east-1"
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = false
-parameter_overrides = "AdminUserIds=34183418-1091-707c-f8b9-a983f5fa860d"
+parameter_overrides = "AdminUserIds=34183418-1091-707c-f8b9-a983f5fa860d,f4b8a408-80d1-7014-feea-16251613c287"
 
 [default.build.parameters]
 cached = true

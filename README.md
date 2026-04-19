@@ -16,6 +16,21 @@ The stack is 100% serverless — no EC2, no containers, no VPC. The entire infra
 
 ---
 
+## Demo Accounts
+
+All accounts use password: **`Classhi1!`**
+
+| Email | Role |
+|-------|------|
+| `dpm79@pitt.edu` | Admin (Dan Mahoney — can create + resolve markets) |
+| `shr172@pitt.edu` | Student |
+| `krk131@pitt.edu` | Student |
+| `aqm12@pitt.edu` | Student |
+| `hnh21@pitt.edu` | Student |
+| `akk97@pitt.edu` | Student |
+
+---
+
 ## Why Classhi is actually fun
 
 Lectures can be passive. You sit, you listen, you drift. Classhi flips that dynamic by giving every student a financial stake — even if it's play money — in what happens next.
