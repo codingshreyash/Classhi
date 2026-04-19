@@ -12,6 +12,9 @@ if (!import.meta.env.VITE_USER_POOL_ID) {
 if (!import.meta.env.VITE_USER_POOL_CLIENT_ID) {
   throw new Error('VITE_USER_POOL_CLIENT_ID not set -- check .env.local');
 }
+if (!import.meta.env.VITE_WS_API_URL) {
+  throw new Error('VITE_WS_API_URL not set -- check .env.local');
+}
 
 Amplify.configure({
   Auth: {
