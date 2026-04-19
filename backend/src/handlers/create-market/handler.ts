@@ -87,6 +87,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     yesPrice: 50,
     noPrice: 50,
     volume: 0,
+    yesVolume: 100,
+    noVolume: 100,
     openAt,
     closeAt,
     createdAt: new Date().toISOString(),
