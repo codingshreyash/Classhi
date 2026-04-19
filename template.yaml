@@ -524,6 +524,43 @@ Resources:
         External:
           - "@aws-sdk/*"
 
+  ResolveMarketFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/src/handlers/resolve-market/
+      Handler: handler.handler
+      Timeout: 30
+      Environment:
+        Variables:
+          MARKETS_TABLE: !Ref MarketsTable
+          POSITIONS_TABLE: !Ref PositionsTable
+          USERS_TABLE: !Ref UsersTable
+          ADMIN_USER_IDS: !Ref AdminUserIds
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MarketsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PositionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        ResolveMarket:
+          Type: HttpApi
+          Properties:
+            Path: /markets/{marketId}/resolve
+            Method: POST
+            ApiId: !Ref HttpApi
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "es2022"
+        Sourcemap: true
+        EntryPoints:
+          - handler.ts
+        External:
+          - "@aws-sdk/*"
+
   WsAuthorizerFunction:
     Type: AWS::Serverless::Function
     Properties:
