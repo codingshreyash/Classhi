@@ -8,6 +8,7 @@ import { HomePage } from './pages/HomePage';
 import { MarketListPage } from './pages/MarketListPage';
 import { MarketDetailPage } from './pages/MarketDetailPage';
 import { CreateMarketPage } from './pages/CreateMarketPage';
+import { PortfolioPage } from './pages/PortfolioPage';
 
 function RootLayout() {
   return (
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
           { path: '/markets', element: <MarketListPage /> },
           { path: '/markets/:marketId', element: <MarketDetailPage /> },
           { path: '/admin/create-market', element: <CreateMarketPage /> },
+          { path: '/portfolio', element: <PortfolioPage /> },
           // Keep HomePage for any direct references, it self-redirects
           { path: '/homepage', element: <HomePage /> },
         ],
