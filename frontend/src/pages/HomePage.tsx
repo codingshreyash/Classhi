@@ -46,11 +46,10 @@ export function HomePage() {
     <div className="min-h-screen bg-classhi-bg dark:bg-dark-bg">
       <NavBar onSignOut={handleSignOut} />
 
-      <main className="mx-auto max-w-3xl px-6 py-12">
+      <main className="mx-auto max-w-6xl px-6 py-12">
 
         {/* Header */}
         <div className="mb-10">
-          <img src="/logo.png" alt="Classhi" className="h-14 mb-4" />
           <p className="text-lg text-gray-600 dark:text-[#8A8A90]">
             A prediction market for CS 1660 — built for our final project.
           </p>
