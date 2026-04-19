@@ -221,7 +221,6 @@ Push to `main` triggers `.github/workflows/deploy.yml`:
 1. `deploy-backend` runs `sam deploy` (OIDC; no long-lived keys).
 2. `deploy-frontend` runs `pnpm run build` in `frontend/`, syncs `dist/` to S3, and invalidates CloudFront (`/*`).
 
-One-time setup required (see `.planning/phases/07-leaderboard-hosting/07-04-PLAN.md` for exact commands):
 
 - IAM OIDC provider for `token.actions.githubusercontent.com`
 - IAM role `classhi-github-deploy` with trust scoped to this repo
