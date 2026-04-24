@@ -286,6 +286,12 @@ Push to `main` triggers `.github/workflows/deploy.yml`:
 
 ---
 
+## AI Usage Acknowledgement
+
+Claude Code was used to generate application logic for this project
+
+---
+
 ## License
 
 Educational use only — CS 1660 Final Project.
