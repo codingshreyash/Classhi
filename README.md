@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/codingshreyash/Classhi/main/frontend/public/logo.png" width="220" alt="Classhi" />
 </p>
 
-> Kalshi-style prediction markets for CS 1660 lectures — play-money bets on live class events, settled by Dan, backed by a fully serverless AWS stack that deploys with a single `sam deploy`.
+> Kalshi-style prediction markets for CS lectures.
 
 **Course:** CS 1660 Cloud Computing — Final Project
 **Live URL:** https://d1vrs4hix1vyxh.cloudfront.net
@@ -12,7 +12,7 @@
 
 ## Overview
 
-Classhi is a lightweight prediction market platform. Students sign up, receive $1000 play-money, and place YES/NO bets on markets created by Dan Mahoney ("Will Dan say 'AWS' more than 10 times today?"). Bets shift a constant-sum price model; WebSocket pushes drive sub-3-second price updates across all browsers. Markets auto-transition from `scheduled → open → closed` via EventBridge Scheduler; Dan Mahoney resolves closed markets, triggering atomic payouts to winning position holders.
+Classhi is a lightweight prediction market platform. Students sign up, receive $1000 play-money, and place YES/NO bets on markets created by Dan ("Will Dan say 'AWS' more than 10 times today?"). Bets shift a constant-sum price model; WebSocket pushes drive sub-3-second price updates across all browsers. Markets auto-transition from `scheduled → open → closed` via EventBridge Scheduler; Dan resolves closed markets, triggering atomic payouts to winning position holders.
 
 The stack is 100% serverless — no EC2, no containers, no VPC. The entire infrastructure is declared in a single `template.yaml` and deploys from a clean clone via `sam build && sam deploy`. A GitHub Actions pipeline auto-deploys both backend and frontend on push to main, authenticated via OIDC (no long-lived AWS keys).
 
@@ -22,20 +22,20 @@ The stack is 100% serverless — no EC2, no containers, no VPC. The entire infra
 
 All accounts use password: **`Classhi1!`**
 
-| Email             | Role                                               |
-| ----------------- | -------------------------------------------------- |
-| `dpm79@pitt.edu`  | Admin (Dan Mahoney — can create + resolve markets) |
-| `shr172@pitt.edu` | Student                                            |
-| `krk131@pitt.edu` | Student                                            |
-| `aqm12@pitt.edu`  | Student                                            |
-| `hnh21@pitt.edu`  | Student                                            |
-| `akk97@pitt.edu`  | Student                                            |
+| Email             | Role                                |
+| ----------------- | ------------------------------------|
+| `dpm79@pitt.edu`  | Admin (can create + resolve markets)|
+| `shr172@pitt.edu` | Student                             |
+| `krk131@pitt.edu` | Student                             |
+| `aqm12@pitt.edu`  | Student                             |
+| `hnh21@pitt.edu`  | Student                             |
+| `akk97@pitt.edu`  | Student                             |
 
 ---
 
-## Why Classhi is actually fun
+## Why Classhi is fun
 
-CS 1660 lectures are good but it's easy to zone out (only because lecture is 6-8, dw Dan, you're the 🐐). The idea behind Classhi is that if you have $10 of play money riding on whether Dan says "serverless" more than 5 times, you're suddenly paying close attention for the rest of the hour.
+CS 1660 lectures are good but it's easy to zone out (only because lecture is 6:00-8:00, dw Dan, you're the 🐐). The idea behind Classhi is that if you have $10 of play money riding on whether Dan says "serverless" more than 5 times, you're suddenly paying close attention for the rest of the hour.
 
 Once you've placed a bet, you're not passively listening — you're actively tracking. And when you open the market page and see the YES price jump from 50¢ to 70¢ in the first 10 minutes, that's everyone else in the room updating their view at the same time.
 
