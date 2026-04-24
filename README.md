@@ -162,11 +162,11 @@ Browser (React SPA) |  https://<cf>.cloudfront.net|
 | 2   | **API Gateway HTTP API**                          | REST routes (`/markets`, `/me`, `/leaderboard`, `/markets/{id}/bets`, `/markets/{id}/resolve`)                      | Native JWT authorizer validates Cognito tokens without a custom Lambda — lower latency + cost than REST API.                                                                                                                   | Shreyash  |
 | 3   | **API Gateway WebSocket API**                     | Real-time price updates pushed to subscribed clients                                                                | Managed WebSocket with stable connection IDs; Lambda authorizer handles JWT via query-string (browsers can't set WS headers).                                                                                                  | Akash     |
 | 4   | **AWS Lambda** (15 functions, ARM64 Node.js 20)   | All business logic: market CRUD, bet placement, payout fan-out, WebSocket handlers, scheduler callback, leaderboard | Per-route isolation; pay-per-invoke; ARM64 saves ~20% vs. x86. Zero ops burden.                                                                                                                                                | Akash     |
-| 5   | **Amazon DynamoDB** (4 tables)                    | Primary data store: users, markets, positions, websocket connections                                                | Single-digit-ms reads, serverless, on-demand billing, atomic `TransactWriteItems` for lost-update-free bet placement (BET-04).                                                                                                 | Aidan     |
+| 5   | **Amazon DynamoDB** (4 tables)                    | Primary data store: users, markets, positions, websocket connections                                                | Single-digit-ms reads, serverless, on-demand billing, atomic `TransactWriteItems` for lost-update-free bet placement.                                                                                                          | Aidan     |
 | 6   | **DynamoDB Streams** (MarketsTable)               | Event source for WebSocket price broadcast                                                                          | Decouples price updates from the bet-placement write path — the broadcaster reads the stream and fans out updates without blocking user requests. `TRIM_HORIZON` + `ReportBatchItemFailures` prevent dropped events.           | Aidan     |
 | 7   | **Amazon EventBridge Scheduler**                  | Per-market one-time schedules for `scheduled → open` and `open → closed` transitions                                | `ScheduleV2` supports timezones + automatic deletion (`ActionAfterCompletion: DELETE`) — unlike classic EventBridge Rules which are UTC-only. Replaces cron polling entirely.                                                  | Krishna   |
 | 8   | **Amazon S3** (private, OAC)                      | Host Vite-built frontend static assets                                                                              | Cheap, durable, scales to grading traffic. Public access fully blocked; only CloudFront OAC can read objects.                                                                                                                  | Krishna   |
-| 9   | **Amazon CloudFront** (+ OAC)                     | HTTPS edge delivery of the SPA; SPA routing fallback                                                                | HTTPS required (INFRA-04); OAC is the current replacement for deprecated OAI; CustomErrorResponses map both 403 and 404 → `/index.html` so React Router sub-routes (`/leaderboard`, `/markets/:id`) work on direct navigation. | Haiden    |
+| 9   | **Amazon CloudFront** (+ OAC)                     | HTTPS edge delivery of the SPA; SPA routing fallback                                                                | HTTPS required; OAC is the current replacement for deprecated OAI; CustomErrorResponses map both 403 and 404 → `/index.html` so React Router sub-routes (`/leaderboard`, `/markets/:id`) work on direct navigation.           | Haiden    |
 
 **Deliberate exclusions** (not part of the 9): SNS, SQS, VPC, CloudWatch alarms, X-Ray. Real-time fan-out is handled by DynamoDB Streams + WebSocket — SNS/SQS would be redundant. No networking is needed for fully-managed services; no VPC required.
 
@@ -257,7 +257,7 @@ Push to `main` triggers `.github/workflows/deploy.yml`:
 ## Key Design Decisions
 
 - **Phantom liquidity seed** (`volume = 100` on market creation) prevents first-bet price collapse — without it, the first $10 YES bet moves the price 50→99 instead of 50→52.
-- **`TransactWriteItems` + retry-on-conflict** makes bet placement atomic across the balance → volume → position update (BET-04). `ClientRequestToken` (36-char truncation) prevents double-charges on Lambda retry.
+- **`TransactWriteItems` + retry-on-conflict** makes bet placement atomic across the balance → volume → position update. `ClientRequestToken` (36-char truncation) prevents double-charges on Lambda retry.
 - **WebSocket JWT via query string** — browsers can't set custom headers on `new WebSocket(url)`; the Cognito ID token rides as `?token=...` and is validated by a Lambda REQUEST authorizer.
 - **DynamoDB Streams `TRIM_HORIZON` + `ReportBatchItemFailures`** — LATEST misses events during event-source-mapping creation; partial batch reporting prevents re-broadcasting all 10 updates when one connection has gone stale.
 - **EventBridge Scheduler with `ActionAfterCompletion: DELETE`** — schedules vanish automatically after firing; no cron polling, no cleanup scripts.
@@ -265,27 +265,22 @@ Push to `main` triggers `.github/workflows/deploy.yml`:
 
 ---
 
-## Requirements Coverage
+## Feature Coverage
 
-All 33 v1 requirements are mapped in `.planning/REQUIREMENTS.md`. Phase progress lives in `.planning/ROADMAP.md`.
-
-Highlights:
-
-- **Auth**: Cognito + Amplify v6 + PostConfirmation → $1000 balance (AUTH-01..05)
-- **Markets / Betting**: constant-sum YES/NO pricing, atomic transactions (MKTL-01..04, BET-01..05)
-- **Real-time**: <3s WebSocket price flash (RT-01..03)
-- **Portfolio**: open + settled positions with P&L (PORT-01..03)
-- **Leaderboard**: top 20 + own rank (LEAD-01..02)
-- **Admin**: create + resolve markets, server-side gate (ADMIN-01..04)
-- **Scheduling**: EventBridge Scheduler auto-transitions (SCHED-01..02)
-- **Infra**: single `sam deploy`, HTTPS via CloudFront, OIDC CI/CD, this README (INFRA-01..05)
+- **Auth**: Cognito + Amplify v6 + PostConfirmation → $1000 balance on sign-up
+- **Markets / Betting**: constant-sum YES/NO pricing, atomic transactions
+- **Real-time**: <3s WebSocket price updates, live price history chart
+- **Portfolio**: open + settled positions with P&L
+- **Leaderboard**: top 20 + own rank
+- **Admin**: create + resolve markets, server-side gate
+- **Scheduling**: EventBridge Scheduler auto-transitions (`scheduled → open → closed`)
+- **Infra**: single `sam deploy`, HTTPS via CloudFront, OIDC CI/CD
 
 ---
 
 ## Future Work
 
 - Swap constant-sum pricing for LMSR
-- Price history chart (time-series pipeline)
 - Real-time leaderboard updates via WebSocket (currently polled)
 - Category tags + market filtering
 
